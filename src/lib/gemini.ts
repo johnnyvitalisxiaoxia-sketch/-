@@ -17,7 +17,7 @@ export const getUserGenAI = () => {
 
 export async function generateImagesForAnswer(answer: string, count: number = 3): Promise<string[]> {
   const ai = getUserGenAI();
-  const prompt = `Create a highly artistic, futuristic, tech-vibe, abstract illustration based on this text: "${answer.substring(0, 300)}...". The color palette MUST be strictly black and glowing red. High contrast, cinematic lighting, cyberpunk or abstract tech aesthetic.`;
+  const prompt = `Create a highly artistic, futuristic, tech-vibe, abstract illustration based on this text: "${answer.substring(0, 300)}...". The color palette MUST be strictly black and glowing red. High contrast, cinematic lighting, cyberpunk or abstract tech aesthetic. No text in the image.`;
   
   const promises = Array.from({ length: count }).map(async () => {
     const response = await ai.models.generateContent({
@@ -35,7 +35,7 @@ export async function generateImagesForAnswer(answer: string, count: number = 3)
     
     for (const part of response.candidates?.[0]?.content?.parts || []) {
       if (part.inlineData) {
-        return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+        return part.inlineData.data; // return base64
       }
     }
     throw new Error('No image generated');
@@ -43,3 +43,4 @@ export async function generateImagesForAnswer(answer: string, count: number = 3)
 
   return Promise.all(promises);
 }
+

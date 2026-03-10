@@ -1,16 +1,46 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Sparkles, ArrowDown } from 'lucide-react';
+import { Sparkles, ArrowDown, Settings } from 'lucide-react';
 import { questions } from './data/questions';
 import QuestionCard from './components/QuestionCard';
 import ChatAssistant from './components/ChatAssistant';
+import { generateImagesForAnswer } from './lib/gemini';
 
 export default function App() {
   const [mounted, setMounted] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleGeneratePresets = async () => {
+    // @ts-ignore
+    if (!window.aistudio?.hasSelectedApiKey?.()) {
+      // @ts-ignore
+      await window.aistudio?.openSelectKey?.();
+    }
+    
+    setIsGenerating(true);
+    try {
+      for (const q of questions) {
+        const base64Images = await generateImagesForAnswer(q.answer, 3);
+        for (let i = 0; i < base64Images.length; i++) {
+          const filename = `${q.id}_${i + 1}.jpg`;
+          await fetch('/api/save-image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename, base64: base64Images[i] })
+          });
+        }
+      }
+      alert('Images generated and saved successfully! Please refresh the page.');
+    } catch (e: any) {
+      alert('Error generating images: ' + e.message);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   if (!mounted) return null;
 
@@ -84,6 +114,19 @@ export default function App() {
           </div>
           
           <ChatAssistant />
+        </section>
+
+        {/* Admin Setup Section */}
+        <section className="mt-24 pt-12 border-t border-red-900/20 text-center">
+          <p className="text-zinc-500 text-sm mb-4">Admin Only: Generate preset images using nanabanana2 model</p>
+          <button
+            onClick={handleGeneratePresets}
+            disabled={isGenerating}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-zinc-900 border border-red-900/50 text-red-500 hover:bg-red-950/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Settings size={16} className={isGenerating ? "animate-spin" : ""} />
+            {isGenerating ? "Generating & Saving Images..." : "Initialize Preset Images (Admin)"}
+          </button>
         </section>
       </div>
     </div>
